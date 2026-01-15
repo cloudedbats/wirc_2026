@@ -1,0 +1,112 @@
+# Configurations for CloudedBats WIRC-2026.
+---
+wirc_app:
+  port: 8082
+  host: "0.0.0.0"
+  log_level: info
+
+rpi-cam0:
+  name: Camera-A (rpi_cam0)
+  startup_mode: preview
+  monochrome: false
+  orientation:
+    hflip: 0
+    vflip: 0
+  settings: 
+    saturation: auto
+    exposure_time_us: auto
+    camera_gain: auto
+  preview:
+    size_divisor: 2.0
+  video:
+    horizontal_size_px: max
+    vertical_size_px: auto
+    framerate_fps: 30
+    pre_buffer_frames: 30
+    single_length_s: 10
+    continuous_length_s: 60
+    file_prefix: Cam-A
+  storage:
+    rec_dir: /home/wurb/wirc_recordings
+    remove_old_rec: true
+    free_space_limit_mb: 500
+  # picamera2_controls:
+  #   AeEnable: false
+
+rpi-cam1:
+  name: Camera-B (rpi_cam1)
+  startup_mode: preview
+  monochrome: false
+  orientation:
+    hflip: 0
+    vflip: 0
+  settings: 
+    saturation: auto
+    exposure_time_us: auto
+    camera_gain: auto
+  preview:
+    size_divisor: 2.0
+  video:
+    horizontal_size_px: max
+    vertical_size_px: auto
+    framerate_fps: 30
+    pre_buffer_frames: 30
+    single_length_s: 10
+    continuous_length_s: 60
+    file_prefix: Cam-B
+  storage:
+    rec_dir: /home/wurb/wirc_recordings
+    remove_old_rec: true
+    free_space_limit_mb: 500
+  # picamera2_controls:
+  #   AeEnable: false
+
+usb-cam0:
+  name: Thermal (usb_thermal)
+  startup_mode: preview
+  orientation:
+    rotation_deg: 0
+  video:
+    framerate_fps: 25
+    pre_buffer_frames: 25
+    single_length_s: 10
+    continuous_length_s: 60
+    file_prefix: Thermal
+  storage:
+    rec_dir: /home/wurb/wirc_recordings
+    remove_old_rec: true
+    free_space_limit_mb: 500
+
+usb-cam1:
+  name: Thermal (usb_thermal)
+  startup_mode: preview
+  orientation:
+    rotation_deg: 0
+  video:
+    framerate_fps: 25
+    pre_buffer_frames: 25
+    single_length_s: 10
+    continuous_length_s: 60
+    file_prefix: Thermal
+  storage:
+    rec_dir: /home/wurb/wirc_recordings
+    remove_old_rec: true
+    free_space_limit_mb: 500
+
+client_info:
+  max_log_rows: 50
+
+# record:
+#   targets:
+#     - id: sda1
+#       name: USB-1
+#       media_path: /media/USB-sda1
+#       rec_dir: wirc_recordings
+#     - id: sdb1
+#       name: USB-2
+#       media_path: /media/USB-sdb1
+#       rec_dir: wirc_recordings
+#     - id: local
+#       name: Local
+#       rec_dir: /user/wurb/wirc_recordings
+#       free_disk_limit: 500 # Unit MB.

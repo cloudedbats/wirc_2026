@@ -1,0 +1,26 @@
+
+--prefer-binary
+
+# API and web.
+fastapi
+uvicorn
+jinja2
+aiofiles
+websockets
+requests
+python-multipart
+# Camera.
+### Use: sudo apt install -y python3-picamera2
+### and: python -m venv --system-site-packages venv
+### Do not use: pip install pycamera2
+# Files.
+psutil
+pyusb
+# Date/time.
+pytz
+python-dateutil
+# Config.
+pyyaml
+# VS Code.
+pylint
+black

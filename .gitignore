@@ -1,0 +1,11 @@
+
+# Python.
+venv
+__pycache__
+*.pyc
+# Pyinstaller.
+build
+dist
+# Misc.
+.DS_Store
+*TEST*/**
