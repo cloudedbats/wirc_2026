@@ -34,10 +34,11 @@ class Cameras:
 
     def get_available_usb_camera_devices(self):
         """ """
-        return self.available_usb_devices
+        return self.available_usb_camera_devices
 
     def check_available_rpi_cameras(self):
         """ """
+        self.available_rpi_camera_models = []
         global_camera_info = picamera2.Picamera2.global_camera_info()
         for index, camera_info in enumerate(global_camera_info):
             if "I2C" in camera_info.get("Id", "").upper():
@@ -46,21 +47,20 @@ class Cameras:
 
     def check_available_usb_cameras(self):
         """ """
-        self.available_usb_devices = []
+        self.available_usb_camera_devices = []
         for device in [
             "/dev/video0",
             "/dev/video1",
             "/dev/video2",
             "/dev/video3",
-            "/dev/video4",
-            "/dev/video5",
+            # "/dev/video4", # Don't use, conflict with RPi cam1.
         ]:
             try:
                 capture = cv2.VideoCapture(device)
                 try:
                     if capture.isOpened():
                         print("USB device: - Success: ", device)
-                        self.available_usb_devices.append(device)
+                        self.available_usb_camera_devices.append(device)
                     else:
                         print("USB device: - Failed: ", device)
                 finally:

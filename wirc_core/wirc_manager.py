@@ -44,7 +44,7 @@ class WircManager(object):
             if self.rpi_cam1_active == True:
                 rpicam = wirc_core.rpi_cam1
         elif camera_id == "camera-c":
-            if self.usb_cam1_active == True:
+            if self.usb_cam0_active == True:
                 rpicam = wirc_core.usb_cam0
         elif camera_id == "camera-d":
             if self.usb_cam1_active == True:
