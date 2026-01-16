@@ -42,7 +42,7 @@ class ThermalCamera:
         self.camera_video_active = False
         self.camera_task = ""
         self.camera_info = ""
-        self.camera_device_name = None
+        self.camera_device_index = None
 
     def configure(self):
         """ """
@@ -51,22 +51,17 @@ class ThermalCamera:
         # self.vflip = vflip
         # self.video_framerate_fps = video_framerate_fps
         #
-        self.cv2_device_index = 0
-        if self.config_id == "usb-cam0":
-            self.cv2_device_index = 0
-        elif self.config_id == "usb-cam1":
-            self.cv2_device_index = 2
 
         self.camera_info = "Config id: " + self.config_id + "."
 
-    def set_camera_device_name(self, device_name):
+    def set_camera_device_index(self, device_index):
         """ """
-        self.camera_device_name = device_name
+        self.camera_device_index = device_index
 
     def get_camera_status(self):
         """ """
         camera_status = {}
-        camera_status["camera_device_name"] = self.camera_device_name
+        camera_status["camera_device_index"] = self.camera_device_index
         camera_status["camera_mode"] = self.camera_mode
         camera_status["exposure_time_us"] = "disabled"
         camera_status["camera_gain"] = "disabled"
@@ -153,7 +148,7 @@ class ThermalCamera:
         try:
             self.camera_active = True
 
-            capture = cv2.VideoCapture(self.cv2_device_index)
+            capture = cv2.VideoCapture(self.camera_device_index)
 
             if not capture.isOpened():
                 print("Error: Could not access the webcam.")

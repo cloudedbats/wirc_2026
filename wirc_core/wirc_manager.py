@@ -100,23 +100,23 @@ class WircManager(object):
     def log_camera_info(self):
         """ """
         status = wirc_core.usb_cam1.get_camera_status()
-        device = status.get("camera_device_name", None)
-        if device:
-            message = "Camera-D (usb1)   device: " + device + "."
+        device_index = status.get("camera_device_index", None)
+        if device_index != None:
+            message = "Camera-D (usb1)   device: " + str(device_index) + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.usb_cam0.get_camera_status()
-        device = status.get("camera_device_name", None)
-        if device:
-            message = "Camera-C (usb0)   device: " + device + "."
+        device_index = status.get("camera_device_index", None)
+        if device_index != None:
+            message = "Camera-C (usb0)   device: " + str(device_index) + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.rpi_cam1.get_camera_status()
         model = status.get("camera_model", None)
-        if model:
+        if model != None:
             message = "Camera-B (cam1)   model: " + model + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.rpi_cam0.get_camera_status()
         model = status.get("camera_model", None)
-        if model:
+        if model != None:
             message = "Camera-A (cam0)   model: " + model + "."
             wirc_core.client_info.write_log("info", message)
 
@@ -136,10 +136,10 @@ class WircManager(object):
                 wirc_core.rpi_cam1.set_camera_model(rpi_cameras[1])
             if len(usb_cameras) >= 1:
                 self.usb_cam0_active = True
-                wirc_core.usb_cam0.set_camera_device_name(usb_cameras[0])
+                wirc_core.usb_cam0.set_camera_device_index(usb_cameras[0])
             if len(usb_cameras) >= 2:
                 self.usb_cam1_active = True
-                wirc_core.usb_cam1.set_camera_device_name(usb_cameras[1])
+                wirc_core.usb_cam1.set_camera_device_index(usb_cameras[1])
 
             self.log_camera_info()
         except Exception as e:

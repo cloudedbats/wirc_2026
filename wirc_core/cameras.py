@@ -48,24 +48,19 @@ class Cameras:
     def check_available_usb_cameras(self):
         """ """
         self.available_usb_camera_devices = []
-        for device in [
-            "/dev/video0",
-            "/dev/video1",
-            "/dev/video2",
-            "/dev/video3",
-            # "/dev/video4", # Don't use, conflict with RPi cam1.
-        ]:
+        for device_index in [0, 1, 2, 3, 4, 5, 6]:
             try:
-                capture = cv2.VideoCapture(device)
+                capture = cv2.VideoCapture(device_index)
                 try:
-                    if capture.isOpened():
-                        print("USB device: - Success: ", device)
-                        self.available_usb_camera_devices.append(device)
+                    rc, image_array = capture.read()
+                    if rc:
+                        print("USB device: - Success: ", device_index)
+                        self.available_usb_camera_devices.append(device_index)
                     else:
-                        print("USB device: - Failed: ", device)
+                        print("USB device: - Failed: ", device_index)
                 finally:
                     capture.release()
-                if len(self.available_usb_devices) >= 2:
+                if len(self.available_usb_camera_devices) >= 2:
                     break
             except Exception as e:
                 self.logger.debug(
