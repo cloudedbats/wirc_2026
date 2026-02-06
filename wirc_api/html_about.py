@@ -27,7 +27,7 @@ async def load_about_page(request: fastapi.Request):
             "about.html",
             {
                 "request": request,
-                "wurb_version": wirc_core.__version__,
+                "wirc_version": wirc_core.__version__,
             },
         )
     except Exception as e:

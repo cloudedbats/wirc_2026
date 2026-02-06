@@ -28,7 +28,7 @@ async def load_camera_page(request: fastapi.Request):
             "camera.html",
             {
                 "request": request,
-                "wurb_version": wirc_core.__version__,
+                "wirc_version": wirc_core.__version__,
             },
         )
     except Exception as e:
