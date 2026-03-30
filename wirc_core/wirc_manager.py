@@ -76,7 +76,7 @@ class WircManager(object):
             wirc_core.client_info.write_log("info", message)
         wirc_core.client_status.trigger_status_event()
 
-    async def set_saturation(self, saturation, camera_id="rpi-cam0"):
+    async def set_saturation(self, camera_id, saturation):
         """ """
         rpicam = self._select_camera(camera_id)
         if rpicam:
