@@ -63,7 +63,7 @@ class RaspberryPiCamera:
         cam = self.config_id
         #
         self.rpi_camera_id = self.config_id
-        self.cam_monochrome = conf.get(cam + ".monochrome", False)
+        self.colour = conf.get(cam + ".settings.colour", False)
         self.saturation = conf.get(cam + ".settings.saturation", "auto")
         self.exposure_time_us = conf.get(cam + ".settings.exposure_time_us", "auto")
         self.camera_gain = conf.get(cam + ".settings.camera_gain", "auto")
@@ -264,26 +264,40 @@ class RaspberryPiCamera:
                 self.exposure_time_us = exposure_time_us
                 if exposure_time_us == "auto":
                     exposure_time_us = 0
-                self.picam2.controls.ExposureTime = int(exposure_time_us)
+                try:
+                    self.picam2.controls.ExposureTime = int(exposure_time_us)
+                except:
+                    pass
             if camera_gain != None:
                 self.camera_gain = camera_gain
                 if camera_gain == "auto":
                     camera_gain = 0
-                self.picam2.controls.AnalogueGain = int(camera_gain)
-            if not self.cam_monochrome:
-                if saturation != None:
-                    self.saturation = saturation
+                try:
+                    self.picam2.controls.AnalogueGain = int(camera_gain)
+                except:
+                    pass
+            if saturation != None:
+                if self.colour == True:
                     if saturation == "auto":
-                        saturation = 0
+                        saturation = 1.0
                     try:
-                        self.picam2.controls.Saturation = int(saturation)
+                        self.picam2.controls.Saturation = float(saturation)
+                    except:
+                        pass
+                else:
+                    try:
+                        self.picam2.controls.Saturation = 0.0
                     except:
                         pass
             if video_framerate_fps != None:
                 self.video_framerate_fps = video_framerate_fps
                 if video_framerate_fps == "auto":
                     video_framerate_fpsframerate_fps = 30
-                self.picam2.controls.FrameRate = int(video_framerate_fps)
+                try:
+                    self.picam2.controls.FrameRate = int(video_framerate_fps)
+                except:
+                    pass
+
             await asyncio.sleep(0)
         except Exception as e:
             self.logger.debug("Exception in set_camera_controls: " + str(e))
@@ -358,13 +372,14 @@ class RaspberryPiCamera:
                 next_time_minute = None
 
                 while True:
-
                     now = datetime.now()
                     date_and_time = now.strftime("%Y%m%dT%H%M%S")
                     file_mp4_name = self.config_id + "_" + date_and_time + ".mp4"
 
                     disc_path = wirc_core.wirc_files.get_target_disc_path()
-                    dir_path = wirc_core.wirc_files.get_target_dir_path(disc_path, date_option="date-post-before")
+                    dir_path = wirc_core.wirc_files.get_target_dir_path(
+                        disc_path, date_option="date-post-before"
+                    )
                     video_mp4_path = pathlib.Path(dir_path, file_mp4_name)
 
                     try:
@@ -391,11 +406,11 @@ class RaspberryPiCamera:
 
                         next_time = now + timedelta(seconds=60)
                         next_time_minute = next_time.replace(
-                                second=0,
-                                microsecond=0,
-                                minute=next_time.minute,
-                                hour=next_time.hour,
-                            )
+                            second=0,
+                            microsecond=0,
+                            minute=next_time.minute,
+                            hour=next_time.hour,
+                        )
                         time_left = next_time_minute - datetime.now()
                         time_left_sec = time_left.total_seconds()
                         await asyncio.sleep(time_left_sec)

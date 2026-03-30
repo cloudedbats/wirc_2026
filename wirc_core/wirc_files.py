@@ -32,10 +32,20 @@ class WircFiles(object):
 
     def configure(self):
         """ """
-        config = self.config
-        # self.min_number_of_satellites = config.get(
-        #     "gps_reader.min_number_of_satellites", 3
-        # )
+        config = self.config.config
+        record = config.get("record", {})
+        self.record_targets = record.get(
+            "targets",
+            [
+                {
+                    "id": "local",
+                    "name": "Local",
+                    "rec_dir": "/user/wurb/wirc_recordings",
+                    "free_disk_limit": 500,
+                }
+            ],
+        )
+        # Only used for Flutter API.
         self.source_dir = "/home/wurb/wirc_recordings"
 
     async def get_directories(self):
@@ -116,36 +126,36 @@ class WircFiles(object):
 
         """
 
-        # TEST:
-        self.rec_targets = [
-            {
-                "id": "sda1",
-                "name": "USB-1",
-                "os": "Linux",
-                "media_path": "/media/USB-sda1",
-                "rec_dir": "wirc_recordings",
-            },
-            {
-                "id": "sdb1",
-                "name": "USB-2",
-                "os": "Linux",
-                "media_path": "/media/USB-sdb1",
-                "rec_dir": "wirc_recordings",
-            },
-            {
-                "id": "local",
-                "name": "Local",
-                "executable_path_as_base": True,
-                "rec_dir": "../wirc_recordings",
-                "free_disk_limit": 500,  # Unit MB.
-            },
-        ]
+        # # TEST:
+        # self.rec_targets = [
+        #     {
+        #         "id": "sda1",
+        #         "name": "USB-1",
+        #         "os": "Linux",
+        #         "media_path": "/media/USB-sda1",
+        #         "rec_dir": "wirc_recordings",
+        #     },
+        #     {
+        #         "id": "sdb1",
+        #         "name": "USB-2",
+        #         "os": "Linux",
+        #         "media_path": "/media/USB-sdb1",
+        #         "rec_dir": "wirc_recordings",
+        #     },
+        #     {
+        #         "id": "local",
+        #         "name": "Local",
+        #         "executable_path_as_base": True,
+        #         "rec_dir": "../wirc_recordings",
+        #         "free_disk_limit": 500,  # Unit MB.
+        #     },
+        # ]
 
         try:
             platform_os = platform.system()  # Linux, Windows or Darwin (for macOS).
             used_dir_path = None
             # Check targets for recordings.
-            for rec_target in self.rec_targets:
+            for rec_target in self.record_targets:
                 if used_dir_path == None:
                     os = rec_target.get("os", "")
                     executable_path_as_base = rec_target.get(
