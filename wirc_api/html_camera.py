@@ -25,11 +25,14 @@ async def load_camera_page(request: fastapi.Request):
     try:
         logger.debug("API called: load_camera_page.")
         return templates.TemplateResponse(
-            "camera.html",
-            {
-                "request": request,
-                "wirc_version": wirc_core.__version__,
-            },
+            request=request,
+            name="camera.html",
+            context={"wurb_version": wirc_core.__version__},
+            # "camera.html",
+            # {
+            #     "request": request,
+            #     "wirc_version": wirc_core.__version__,
+            # },
         )
     except Exception as e:
         message = "API - load_camera_page. Exception: " + str(e)

@@ -64,11 +64,14 @@ async def load_main_application_page(request: fastapi.Request):
     try:
         logger.debug("API called: webpage.")
         return templates.TemplateResponse(
-            "index.html",
-            {
-                "request": request,
-                "wirc_version": wirc_core.__version__,
-            },
+            request=request,
+            name="index.html",
+            context={"wurb_version": wirc_core.__version__},
+            # "index.html",
+            # {
+            #     "request": request,
+            #     "wirc_version": wirc_core.__version__,
+            # },
         )
     except Exception as e:
         message = "API - load_main_application_page. Exception: " + str(e)
