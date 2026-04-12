@@ -85,7 +85,7 @@ record:
       rec_dir: wirc_recordings
     - id: local
       name: Local
-      rec_dir: /user/wurb/wirc_recordings
+      rec_dir: /home/wurb/wirc_recordings
       free_disk_limit: 500 # Unit MB.
 
 client_info:
