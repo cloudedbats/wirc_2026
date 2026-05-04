@@ -26,10 +26,10 @@ class WircClientStatus:
     def clear(self):
         """ """
         self.status_event = None
-        self.cam0_exposure_time_us = None
-        self.cam1_exposure_time_us = None
-        self.cam0_camera_gain = None
-        self.cam1_camera_gain = None
+        # self.cam0_exposure_time_us = None
+        # self.cam1_exposure_time_us = None
+        # self.cam0_camera_gain = None
+        # self.cam1_camera_gain = None
 
     def configure(self):
         """ """
@@ -44,23 +44,23 @@ class WircClientStatus:
         if self.status_event:
             self.status_event.set()
 
-    def set_exposure_time_us(self, exposure_time_us, camera_id="camera-a"):
-        """ """
-        if camera_id == "camera-a":
-            self.cam0_exposure_time_us = exposure_time_us
-            self.trigger_status_event()
-        if camera_id == "camera-b":
-            self.cam1_exposure_time_us = exposure_time_us
-            self.trigger_status_event()
+    # def set_exposure_time_us(self, exposure_time_us, camera_id="camera-a"):
+    #     """ """
+    #     if camera_id == "camera-a":
+    #         self.cam0_exposure_time_us = exposure_time_us
+    #         self.trigger_status_event()
+    #     if camera_id == "camera-b":
+    #         self.cam1_exposure_time_us = exposure_time_us
+    #         self.trigger_status_event()
 
-    def set_camera_gain(self, camera_gain, camera_id="camera-a"):
-        """ """
-        if camera_id == "camera-a":
-            self.cam0_camera_gain = camera_gain
-            self.trigger_status_event()
-        if camera_id == "camera-b":
-            self.cam1_camera_gain = camera_gain
-            self.trigger_status_event()
+    # def set_camera_gain(self, camera_gain, camera_id="camera-a"):
+    #     """ """
+    #     if camera_id == "camera-a":
+    #         self.cam0_camera_gain = camera_gain
+    #         self.trigger_status_event()
+    #     if camera_id == "camera-b":
+    #         self.cam1_camera_gain = camera_gain
+    #         self.trigger_status_event()
 
     def trigger_status_event(self):
         """ """
@@ -83,3 +83,33 @@ class WircClientStatus:
         camera_status_dict["camera-c"] = wirc_core.usb_cam0.get_camera_status()
         camera_status_dict["camera-d"] = wirc_core.usb_cam1.get_camera_status()
         return camera_status_dict
+
+    async def detector_status(self):
+        """ """
+        status_list = []
+        status_list.append(wirc_core.usb_cam1.get_camera_status())
+        status_list.append(wirc_core.usb_cam0.get_camera_status())
+        status_list.append(wirc_core.rpi_cam1.get_camera_status())
+        status_list.append(wirc_core.rpi_cam0.get_camera_status())
+
+        camera_list = ["Camera-D", "Camera-C", "Camera-B", "Camera-A"]
+        for index, status_dict in enumerate(status_list):
+            message = camera_list[index] + ": "
+            if ("camera_device_index" in status_dict) and status_dict[
+                "camera_device_index"
+            ] != None:
+                message += "Device index: "
+                message += str(status_dict.get("camera_device_index", "")) + ", "
+                message += "Mode: "
+                message += status_dict.get("camera_mode", "") + "."
+            elif ("camera_model" in status_dict) and status_dict["camera_model"]:
+                message += "Model: "
+                message += status_dict.get("camera_model", "") + ", "
+                message += "Frame rate: "
+                message += str(status_dict.get("video_framerate_fps", "")) + " fps, "
+                message += "Mode: "
+                message += status_dict.get("camera_mode", "") + "."
+            else:
+                message += "Not connected."
+            #
+            wirc_core.client_info.write_log("info", message)

@@ -11,10 +11,11 @@ rpi-cam0:
     hflip: 0
     vflip: 0
   settings:
+    startup_mode: camera-off # camera-off, camera-on, record-on.
     colour: false
-    saturation: auto
-    exposure_time_us: auto
-    camera_gain: auto
+    saturation: auto # auto, 0.0 = monochrome, 1.0 = colour.
+    exposure_time_us: auto # auto or exposure time in micro sec.
+    camera_gain: auto # auto or 1.0 to 16.0.
   preview:
     size_divisor: 2.0
   video:
@@ -24,6 +25,8 @@ rpi-cam0:
     pre_buffer_frames: 30
     single_length_s: 10
     continuous_length_s: 60
+    directory_name: WircStation
+    date_option: date-post-before
     file_prefix: Cam-A
   # picamera2_controls:
   #   AeEnable: false
@@ -34,6 +37,7 @@ rpi-cam1:
     hflip: 0
     vflip: 0
   settings: 
+    startup_mode: camera-off # camera-off, camera-on, record-on.
     colour: false
     saturation: auto
     exposure_time_us: auto
@@ -47,6 +51,8 @@ rpi-cam1:
     pre_buffer_frames: 30
     single_length_s: 10
     continuous_length_s: 60
+    directory_name: WircStation
+    date_option: date-post-before
     file_prefix: Cam-B
   # picamera2_controls:
   #   AeEnable: false
@@ -55,23 +61,31 @@ usb-cam0:
   name: Thermal (usb_thermal)
   orientation:
     rotation_deg: 0
+  settings: 
+    startup_mode: camera-off # camera-off, camera-on, record-on.
   video:
     framerate_fps: 25
     pre_buffer_frames: 25
     single_length_s: 10
     continuous_length_s: 60
-    file_prefix: Thermal
+    directory_name: WircStation
+    date_option: date-post-before
+    file_prefix: Thermal-A
 
 usb-cam1:
   name: Thermal (usb_thermal)
   orientation:
     rotation_deg: 0
+  settings: 
+    startup_mode: camera-off # camera-off, camera-on, record-on.
   video:
     framerate_fps: 25
     pre_buffer_frames: 25
     single_length_s: 10
     continuous_length_s: 60
-    file_prefix: Thermal
+    directory_name: WircStation
+    date_option: date-post-before
+    file_prefix: Thermal-B
 
 record:
   targets:

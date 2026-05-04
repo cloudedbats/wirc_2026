@@ -23,6 +23,7 @@ class RaspberryPiCamera:
         config={},
         logger_name="DefaultLogger",
         config_id="rpi-cam0",
+        camera_name="Camera-A",
     ):
         """ """
         self.config = config
@@ -31,6 +32,7 @@ class RaspberryPiCamera:
         self.clear()
         self.camera_initiated = False
         self.config_id = config_id
+        self.camera_name = camera_name
         self.configure()
         # For preview streaming.
         self.preview_queue = asyncio.Queue(maxsize=10)
@@ -63,6 +65,7 @@ class RaspberryPiCamera:
         cam = self.config_id
         #
         self.rpi_camera_id = self.config_id
+        self.startup_mode = conf.get(cam + ".settings.startup_mode", False)
         self.colour = conf.get(cam + ".settings.colour", False)
         self.saturation = conf.get(cam + ".settings.saturation", "auto")
         self.exposure_time_us = conf.get(cam + ".settings.exposure_time_us", "auto")
@@ -76,6 +79,10 @@ class RaspberryPiCamera:
         self.video_vertical_size_px = conf.get(cam + ".video.vertical_size_px", "auto")
         self.video_framerate_fps = conf.get(cam + ".video.framerate_fps", 30)
         self.video_pre_buffer_frames = conf.get(cam + ".video.pre_buffer_frames", 30)
+
+        self.directory_name = conf.get(cam + ".video.directory_name", "WircStation")
+        self.date_option = conf.get(cam + ".video.date_option", "date-post-before")
+        self.file_prefix = conf.get(cam + ".video.file_prefix", self.camera_name)
 
         self.camera_info = "Config id: " + self.config_id + "."
 
@@ -93,11 +100,15 @@ class RaspberryPiCamera:
 
     async def set_camera_mode(self, camera_mode):
         """ """
-        self.camera_mode = camera_mode
+        if camera_mode:
+            self.camera_mode = camera_mode
+        else:
+            self.camera_mode = self.startup_mode
+        #
         if self.camera_initiated == False:
             await self.initiate_camera()
             await asyncio.sleep(0)
-        if camera_mode == "camera-off":
+        if self.camera_mode == "camera-off":
             if self.camera_video_active == True:
                 await self.stop_video()
                 while self.camera_video_active == True:
@@ -105,7 +116,7 @@ class RaspberryPiCamera:
             if self.camera_active == True:
                 await self.stop_camera()
                 await asyncio.sleep(0)
-        elif camera_mode == "camera-on":
+        elif self.camera_mode == "camera-on":
             if self.camera_video_active == True:
                 await self.stop_video()
                 while self.camera_video_active == True:
@@ -113,7 +124,7 @@ class RaspberryPiCamera:
             if self.camera_active == False:
                 await self.start_camera()
                 await asyncio.sleep(0)
-        elif camera_mode == "record-on":
+        elif self.camera_mode == "record-on":
             if self.camera_active == False:
                 await self.start_camera()
                 await asyncio.sleep(0)
@@ -122,6 +133,9 @@ class RaspberryPiCamera:
                 await asyncio.sleep(0)
         else:
             self.camera_mode = "camera-failed"
+        #
+        message = self.camera_name + ": " + str(self.camera_mode) + "."
+        wirc_core.client_info.write_log("info", message)
 
     async def camera_trigger(self):
         """ """
@@ -374,11 +388,13 @@ class RaspberryPiCamera:
                 while True:
                     now = datetime.now()
                     date_and_time = now.strftime("%Y%m%dT%H%M%S")
-                    file_mp4_name = self.config_id + "_" + date_and_time + ".mp4"
+                    file_mp4_name = self.file_prefix + "_" + date_and_time + ".mp4"
 
                     disc_path = wirc_core.wirc_files.get_target_disc_path()
                     dir_path = wirc_core.wirc_files.get_target_dir_path(
-                        disc_path, date_option="date-post-before"
+                        disc_path,
+                        directory_name=self.directory_name,
+                        date_option=self.date_option,
                     )
                     video_mp4_path = pathlib.Path(dir_path, file_mp4_name)
 
@@ -395,7 +411,6 @@ class RaspberryPiCamera:
                             + " sec, gain: "
                             + str(gain)
                         )
-                        print(metadata_string)
                         out_path = str(video_mp4_path).replace(
                             ".mp4", "_" + metadata_string + ".mp4"
                         )
@@ -418,14 +433,16 @@ class RaspberryPiCamera:
                         # await self.stop_video()
                         # self.video_output.stop()
                         self.video_output.close_output()
-                        self.logger.info("Video stored: " + str(video_mp4_path))
+                        message = self.camera_name + ": Video stored: " + str(out_path)
+                        wirc_core.client_info.write_log("info", message)
 
                     except Exception as e:
                         self.logger.debug("Exception in _camera_video_loop: " + str(e))
 
             finally:
                 self.video_output.close_output()
-                self.logger.info("Video stored: " + str(video_mp4_path))
+                message = self.camera_name + ": Video stored: " + str(out_path)
+                wirc_core.client_info.write_log("info", message)
 
                 if self.video_output:
                     self.video_output.stop()

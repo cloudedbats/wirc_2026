@@ -23,6 +23,7 @@ class ThermalCamera:
         config={},
         logger_name="DefaultLogger",
         config_id="usb-cam0",
+        camera_name="Camera-A",
     ):
         """ """
         self.config = config
@@ -31,6 +32,7 @@ class ThermalCamera:
         self.clear()
         self.camera_initiated = False
         self.config_id = config_id
+        self.camera_name = camera_name
         self.configure()
         # For preview streaming.
         self.preview_queue = asyncio.Queue(maxsize=10)
@@ -46,13 +48,21 @@ class ThermalCamera:
 
     def configure(self):
         """ """
+        conf = self.config
+        cam = self.config_id
+        #
+        self.rpi_camera_id = self.config_id
+        self.camera_info = "Config id: " + self.config_id + "."
+        self.startup_mode = conf.get(cam + ".settings.startup_mode", False)
+
         # self.camera_id = camera_id
         # self.hflip = hflip
         # self.vflip = vflip
         # self.video_framerate_fps = video_framerate_fps
-        #
 
-        self.camera_info = "Config id: " + self.config_id + "."
+        self.directory_name = conf.get(cam + ".video.directory_name", "WircStation")
+        self.date_option = conf.get(cam + ".video.date_option", "date-post-before")
+        self.file_prefix = conf.get(cam + ".video.file_prefix", self.camera_name)
 
     def set_camera_device_index(self, device_index):
         """ """
@@ -72,22 +82,26 @@ class ThermalCamera:
 
     async def set_camera_mode(self, camera_mode):
         """ """
-        self.camera_mode = camera_mode
-        if camera_mode == "camera-off":
+        if camera_mode:
+            self.camera_mode = camera_mode
+        else:
+            self.camera_mode = self.startup_mode
+        #
+        if self.camera_mode == "camera-off":
             if self.camera_video_active == True:
                 await self.stop_video()
                 await asyncio.sleep(0)
             if self.camera_active == True:
                 await self.stop_camera()
                 await asyncio.sleep(0)
-        elif camera_mode == "camera-on":
+        elif self.camera_mode == "camera-on":
             if self.camera_video_active == True:
                 await self.stop_video()
                 await asyncio.sleep(0)
             if self.camera_active == False:
                 await self.start_camera()
                 await asyncio.sleep(0)
-        elif camera_mode == "record-on":
+        elif self.camera_mode == "record-on":
             if self.camera_active == False:
                 await self.start_camera()
                 await asyncio.sleep(0)
@@ -96,6 +110,9 @@ class ThermalCamera:
                 await asyncio.sleep(0)
         else:
             self.camera_mode = "camera-failed"
+        #
+        message = self.camera_name + ": " + str(self.camera_mode) + "."
+        wirc_core.client_info.write_log("info", message)
 
     async def camera_trigger(self):
         """ """
@@ -205,12 +222,15 @@ class ThermalCamera:
                         )
 
                         date_and_time = now.strftime("%Y%m%dT%H%M%S")
-                        file_mp4_name = self.config_id + "_" + date_and_time + ".mp4"
+                        file_mp4_name = self.file_prefix + "_" + date_and_time + ".mp4"
                         video_writer = VideoFileWriter(
+                            camera_name=self.camera_name,
                             file_mp4_name=file_mp4_name,
                             frame_height=frame_height,
                             frame_width=frame_width,
                             fps=25,
+                            directory_name=self.directory_name,
+                            date_option=self.date_option,
                         )
                         self.logger.debug(
                             "Thermal video started. Time: " + str(datetime.now())
@@ -283,16 +303,22 @@ class VideoFileWriter(object):
 
     def __init__(
         self,
+        camera_name,
         file_mp4_name,
         frame_height,
         frame_width,
         fps,
-    ):
+        directory_name,
+        date_option,
+   ):
         """ """
+        self.camera_name = camera_name
         self.file_mp4_name = file_mp4_name
         self.frame_height = frame_height
         self.frame_width = frame_width
         self.fps = fps
+        self.directory_name = directory_name
+        self.date_option = date_option
         #
         self.frames = []
         self.write_task = None
@@ -305,7 +331,9 @@ class VideoFileWriter(object):
         """ """
         disc_path = wirc_core.wirc_files.get_target_disc_path()
         dir_path = wirc_core.wirc_files.get_target_dir_path(
-            disc_path, date_option="date-post-before"
+            disc_path,
+            directory_name=self.directory_name,
+            date_option=self.date_option,
         )
         self.out_path = pathlib.Path(dir_path, self.file_mp4_name)
 
@@ -314,6 +342,9 @@ class VideoFileWriter(object):
         self.write_task = asyncio.create_task(
             self._write_to_file_task(), name="Write to file task"
         )
+        #
+        message = self.camera_name + ": Video stored: " + str(self.out_path)
+        wirc_core.client_info.write_log("info", message)
 
     def cancel(self):
         """ """
