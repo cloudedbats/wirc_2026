@@ -71,6 +71,7 @@ Install the WIRC-2026 software.
 (The "--system-site-packages" is used to allow access to software from outside the
 virtual environment.)
 
+    cd /home/wurb
     git clone https://github.com/cloudedbats/wirc_2026.git
     cd wirc_2026/
     python -m venv --system-site-packages venv
