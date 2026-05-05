@@ -41,7 +41,6 @@ from wirc_core.wirc_client_status import WircClientStatus
 from wirc_core.wirc_client_info import WircClientInfo
 from wirc_core.wirc_files import WircFiles
 
-
 # Instances of classes.
 
 config = wirc_utils.Configuration(logger_name=logger_name)
@@ -52,10 +51,30 @@ config.load_config(
 )
 # Camera.
 cameras = Cameras(config, logger_name=logger_name)
-rpi_cam0 = RaspberryPiCamera(config, logger_name=logger_name, config_id="rpi-cam0")
-rpi_cam1 = RaspberryPiCamera(config, logger_name=logger_name, config_id="rpi-cam1")
-usb_cam0 = ThermalCamera(config, logger_name=logger_name, config_id="usb-cam0")
-usb_cam1 = ThermalCamera(config, logger_name=logger_name, config_id="usb-cam1")
+rpi_cam0 = RaspberryPiCamera(
+    config,
+    logger_name=logger_name,
+    config_id="rpi-cam0",
+    camera_name="Camera-A",
+)
+rpi_cam1 = RaspberryPiCamera(
+    config,
+    logger_name=logger_name,
+    config_id="rpi-cam1",
+    camera_name="Camera-B",
+)
+usb_cam0 = ThermalCamera(
+    config,
+    logger_name=logger_name,
+    config_id="usb-cam0",
+    camera_name="Camera-C",
+)
+usb_cam1 = ThermalCamera(
+    config,
+    logger_name=logger_name,
+    config_id="usb-cam1",
+    camera_name="Camera-D",
+)
 
 # Basic wirc.
 wirc_config = WircConfig(config, logger_name=logger_name)

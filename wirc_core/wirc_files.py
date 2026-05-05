@@ -40,7 +40,7 @@ class WircFiles(object):
                 {
                     "id": "local",
                     "name": "Local",
-                    "rec_dir": "/user/wurb/wirc_recordings",
+                    "rec_dir": "/home/wurb/wirc_recordings",
                     "free_disk_limit": 500,
                 }
             ],
@@ -200,31 +200,42 @@ class WircFiles(object):
 
         return None
 
-    def get_target_dir_path(self, disc_path, date_option="date-post-before"):
+    def get_target_dir_path(self, disc_path, directory_name, date_option):
         """ """
         target_directory = pathlib.Path(disc_path)
-        file_directory = "WircStation"
+        file_directory = directory_name
         rec_target_dir = file_directory
+        rec_target_dir_path = pathlib.Path(target_directory, rec_target_dir)
+        try:
+            used_date_str = ""
+            if date_option in ["date-pre-true", "date-post-true"]:
+                used_date = datetime.datetime.now()
+                used_date_str = used_date.strftime("%Y-%m-%d")
+            if date_option in ["date-pre-after", "date-post-after"]:
+                used_date = datetime.datetime.now() + datetime.timedelta(hours=12)
+                used_date_str = used_date.strftime("%Y-%m-%d")
+            if date_option in ["date-pre-before", "date-post-before"]:
+                used_date = datetime.datetime.now() - datetime.timedelta(hours=12)
+                used_date_str = used_date.strftime("%Y-%m-%d")
+            if date_option in [
+                "date-pre-true",
+                "date-pre-after",
+                "date-pre-before",
+            ]:
+                rec_target_dir = used_date_str + "_" + file_directory
+            elif date_option in [
+                "date-post-true",
+                "date-post-after",
+                "date-post-before",
+            ]:
+                rec_target_dir = file_directory + "_" + used_date_str
+            #
+            rec_target_dir_path = pathlib.Path(target_directory, rec_target_dir)
+            if not rec_target_dir_path.exists():
+                rec_target_dir_path.mkdir(parents=True)
 
-        # date_option = wirc_core.wurb_settings.get_setting("fileDirectoryDateOption")
+        except Exception as e:
+            message = "Failed in get_target_dir_path. Exception: " + str(e)
+            self.logger.debug(message)
 
-        used_date_str = ""
-        if date_option in ["date-pre-true", "date-post-true"]:
-            used_date = datetime.datetime.now()
-            used_date_str = used_date.strftime("%Y-%m-%d")
-        if date_option in ["date-pre-after", "date-post-after"]:
-            used_date = datetime.datetime.now() + datetime.timedelta(hours=12)
-            used_date_str = used_date.strftime("%Y-%m-%d")
-        if date_option in ["date-pre-before", "date-post-before"]:
-            used_date = datetime.datetime.now() - datetime.timedelta(hours=12)
-            used_date_str = used_date.strftime("%Y-%m-%d")
-        if date_option in ["date-pre-true", "date-pre-after", "date-pre-before"]:
-            rec_target_dir = used_date_str + "_" + file_directory
-        elif date_option in ["date-post-true", "date-post-after", "date-post-before"]:
-            rec_target_dir = file_directory + "_" + used_date_str
-        #
-        self.rec_target_dir_path = pathlib.Path(target_directory, rec_target_dir)
-        if not self.rec_target_dir_path.exists():
-            self.rec_target_dir_path.mkdir(parents=True)
-
-        return self.rec_target_dir_path
+        return rec_target_dir_path

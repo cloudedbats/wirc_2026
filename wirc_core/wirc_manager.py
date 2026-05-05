@@ -63,8 +63,8 @@ class WircManager(object):
         rpicam = self._select_camera(camera_id)
         if rpicam:
             await rpicam.set_camera_mode(camera_mode)
-            message = camera_id.capitalize() + ": " + camera_mode + "."
-            wirc_core.client_info.write_log("info", message)
+        #     message = camera_id.capitalize() + ": " + camera_mode + "."
+        #     wirc_core.client_info.write_log("info", message)
         wirc_core.client_status.trigger_status_event()
 
     async def camera_trigger(self, camera_id):
@@ -102,22 +102,22 @@ class WircManager(object):
         status = wirc_core.usb_cam1.get_camera_status()
         device_index = status.get("camera_device_index", None)
         if device_index != None:
-            message = "Camera-D (usb1)   device: " + str(device_index) + "."
+            message = "Camera-D (usb-cam1) device: " + str(device_index) + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.usb_cam0.get_camera_status()
         device_index = status.get("camera_device_index", None)
         if device_index != None:
-            message = "Camera-C (usb0)   device: " + str(device_index) + "."
+            message = "Camera-C (usb-cam0) device: " + str(device_index) + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.rpi_cam1.get_camera_status()
         model = status.get("camera_model", None)
         if model != None:
-            message = "Camera-B (cam1)   model: " + model + "."
+            message = "Camera-B (rpi-cam1) model: " + model + "."
             wirc_core.client_info.write_log("info", message)
         status = wirc_core.rpi_cam0.get_camera_status()
         model = status.get("camera_model", None)
         if model != None:
-            message = "Camera-A (cam0)   model: " + model + "."
+            message = "Camera-A (rpi-cam0) model: " + model + "."
             wirc_core.client_info.write_log("info", message)
 
     async def startup(self):
@@ -141,7 +141,33 @@ class WircManager(object):
                 self.usb_cam1_active = True
                 wirc_core.usb_cam1.set_camera_device_index(usb_cameras[1])
 
+            await asyncio.sleep(0)
+
             self.log_camera_info()
+
+            await asyncio.sleep(0)
+
+            if len(rpi_cameras) >= 1:
+                self.rpi_cam0_active = True
+                await wirc_core.rpi_cam0.set_camera_mode(
+                    camera_mode=None
+                )  # Use startup mode.
+            if len(rpi_cameras) >= 2:
+                self.rpi_cam1_active = True
+                await wirc_core.rpi_cam1.set_camera_mode(
+                    camera_mode=None
+                )  # Use startup mode.
+            if len(usb_cameras) >= 1:
+                self.usb_cam0_active = True
+                await wirc_core.usb_cam0.set_camera_mode(
+                    camera_mode=None
+                )  # Use startup mode.
+            if len(usb_cameras) >= 2:
+                self.usb_cam1_active = True
+                await wirc_core.usb_cam1.set_camera_mode(
+                    camera_mode=None
+                )  # Use startup mode.
+
         except Exception as e:
             self.logger.debug("Exception in WircManager - startup: " + str(e))
 

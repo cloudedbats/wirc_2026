@@ -31,6 +31,7 @@ async def set_time(posixtime: str):
         await wirc_core.rpi_control.set_detector_time(
             posix_time_s, cmd_source="by user"
         )
+        wirc_core.client_info.write_log("info", "Detector time updated by user.")
     except Exception as e:
         message = "API - set_time. Exception: " + str(e)
         logger.debug(message)
