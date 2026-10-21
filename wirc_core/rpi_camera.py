@@ -231,7 +231,7 @@ class RaspberryPiCamera:
 
             self.preview_encoder.output = outputs.FileOutput(self.preview_streamer)
             self.picam2.start_encoder(
-                self.preview_encoder, name="lores", quality=encoders.Quality.VERY_LOW
+                self.preview_encoder, name="lores", quality=encoders.Quality.LOW
             )
             await asyncio.sleep(0)
 
@@ -463,14 +463,14 @@ class RaspberryPiCamera:
                             self.video_output = outputs.PyavOutput(out_path)
                             self.video_encoder.output = [self.video_output]
                             self.picam2.start_encoder(
-                                self.video_encoder, quality=encoders.Quality.VERY_LOW
+                                self.video_encoder, quality=encoders.Quality.LOW
                             )
                         else:
                             self.picam2.stop_encoder(self.video_encoder)
                             self.video_output = outputs.PyavOutput(out_path)
                             self.video_encoder.output = [self.video_output]
                             self.picam2.start_encoder(
-                                self.video_encoder, quality=encoders.Quality.VERY_LOW
+                                self.video_encoder, quality=encoders.Quality.LOW
                             )
 
                         next_time = now + timedelta(seconds=60)
@@ -531,29 +531,37 @@ class RaspberryPiCamera:
         self.trigger_video_active = True
         out_path = ""
         next_time_minute = None
+
+        pre_trigger_s = 2.0
+        post_trigger_s = 4.0
+
         try:
             try:
                 # Decoder and output for trigger_video.
                 self.trigger_video_encoder = encoders.H264Encoder()
                 self.trigger_video_output = outputs.CircularOutput2(
-                    buffer_duration_ms=1000
+                    buffer_duration_ms=int(pre_trigger_s * 1000.0)
                 )
                 # Start the circular output.
                 self.picam2.start_encoder(
                     self.trigger_video_encoder,
                     self.trigger_video_output,
                     name="main",
-                    quality=encoders.Quality.VERY_LOW,
+                    quality=encoders.Quality.LOW,
+                    # quality=encoders.Quality.VERY_LOW,
                 )
+                # Get trigger event.
+                video_trigger_event = self.get_video_trigger_event()
                 await asyncio.sleep(0)
 
                 while True:
 
-                    # Wait until trigger is received.
-                    video_trigger_event = self.get_video_trigger_event()
+                    # Wait until trigger event is set.
                     await video_trigger_event.wait()
+                    # Used for next trigger events.
+                    video_trigger_event = self.get_video_trigger_event()
 
-                    now = datetime.now()
+                    now = datetime.now() - timedelta(seconds=pre_trigger_s - 0.5)
                     date_and_time = now.strftime("%Y%m%dT%H%M%S")
                     file_mp4_name = (
                         self.file_prefix + "_" + date_and_time + ".mp4"
@@ -590,9 +598,13 @@ class RaspberryPiCamera:
                         self.trigger_video_output.open_output(
                             outputs.PyavOutput(out_path)
                         )
-                        await asyncio.sleep(5.0)
+
+                        # Wait during recording.
+                        await asyncio.sleep(float(pre_trigger_s + post_trigger_s))
+
                         self.trigger_video_output.close_output()
 
+                        await asyncio.sleep(0)
                     except Exception as e:
                         self.logger.debug("Exception in _trigger_video_loop: " + str(e))
 
