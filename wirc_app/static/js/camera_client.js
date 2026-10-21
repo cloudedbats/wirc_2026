@@ -1,9 +1,10 @@
-async function setCameraMode(cameraId, cameraMode) {
+async function setCameraMode(cameraId, cameraMode, previewMode) {
   try {
     let urlString = '/camera/camera-mode/';
     let params = {
       camera_id: cameraId,
       camera_mode: cameraMode,
+      preview_mode: previewMode,
     };
     await fetch(urlString, {
       method: 'POST',
@@ -20,7 +21,7 @@ async function setCameraMode(cameraId, cameraMode) {
 
 async function activateRecordTrigger(cameraId) {
   try {
-    let urlString = '/camera/record-trigger/';
+    let urlString = '/camera/video-trigger/';
     let params = {
       cameraId: cameraId,
     };

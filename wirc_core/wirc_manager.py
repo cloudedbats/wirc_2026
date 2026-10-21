@@ -6,8 +6,6 @@
 
 import asyncio
 import logging
-import pathlib
-import datetime
 
 import wirc_core
 
@@ -58,22 +56,21 @@ class WircManager(object):
             return rpicam.preview_queue
         return None
 
-    async def camera_mode(self, camera_id, camera_mode):
+    async def camera_mode(self, camera_id, camera_mode=None, preview_mode=None):
         """ """
         rpicam = self._select_camera(camera_id)
         if rpicam:
-            await rpicam.set_camera_mode(camera_mode)
+            await rpicam.set_camera_mode(camera_mode, preview_mode)
         #     message = camera_id.capitalize() + ": " + camera_mode + "."
         #     wirc_core.client_info.write_log("info", message)
         wirc_core.client_status.trigger_status_event()
 
-    async def camera_trigger(self, camera_id):
+    async def video_trigger(self):
         """ """
-        rpicam = self._select_camera(camera_id)
-        if rpicam:
-            await rpicam.camera_trigger()
-            message = camera_id.capitalize() + ": triggered."
-            wirc_core.client_info.write_log("info", message)
+        await wirc_core.rpi_cam0.video_trigger()
+        await wirc_core.rpi_cam1.video_trigger()
+        await wirc_core.usb_cam0.video_trigger()
+        await wirc_core.usb_cam1.video_trigger()
         wirc_core.client_status.trigger_status_event()
 
     async def set_saturation(self, camera_id, saturation):
@@ -150,22 +147,22 @@ class WircManager(object):
             if len(rpi_cameras) >= 1:
                 self.rpi_cam0_active = True
                 await wirc_core.rpi_cam0.set_camera_mode(
-                    camera_mode=None
+                    camera_mode=None, preview_mode=None
                 )  # Use startup mode.
             if len(rpi_cameras) >= 2:
                 self.rpi_cam1_active = True
                 await wirc_core.rpi_cam1.set_camera_mode(
-                    camera_mode=None
+                    camera_mode=None, preview_mode=None
                 )  # Use startup mode.
             if len(usb_cameras) >= 1:
                 self.usb_cam0_active = True
                 await wirc_core.usb_cam0.set_camera_mode(
-                    camera_mode=None
+                    camera_mode=None, preview_mode=None
                 )  # Use startup mode.
             if len(usb_cameras) >= 2:
                 self.usb_cam1_active = True
                 await wirc_core.usb_cam1.set_camera_mode(
-                    camera_mode=None
+                    camera_mode=None, preview_mode=None
                 )  # Use startup mode.
 
         except Exception as e:
@@ -175,9 +172,9 @@ class WircManager(object):
         """ """
         try:
             pass
-            # await wirc_core.rpi_cam0.set_camera_mode("camera-off")
-            # await wirc_core.rpi_cam1.set_camera_mode("camera-off")
-            # await wirc_core.usb_cam0.set_camera_mode("camera-off")
-            # await wirc_core.usb_cam1.set_camera_mode("camera-off")
+            # await wirc_core.rpi_cam0.set_camera_mode(camera_mode="camera-off")
+            # await wirc_core.rpi_cam1.set_camera_mode(camera_mode="camera-off")
+            # await wirc_core.usb_cam0.set_camera_mode(camera_mode="camera-off")
+            # await wirc_core.usb_cam1.set_camera_mode(camera_mode="camera-off")
         except Exception as e:
             self.logger.debug("Exception in WircManager - shutdown: " + str(e))

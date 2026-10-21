@@ -2,16 +2,16 @@ var selectedCameraId = 'camera-a';
 var selectedCameraName = 'Camera-A';
 var cameraStatusAll = {
   'camera-a': {
-    'camera_mode': 'camera-off', 'exposure_time_us': 'auto', 'camera_gain': 'auto', 'video_framerate_fps': '30', 'camera_info': 'RPi cam0.'
+    'camera_mode': 'camera-off', 'preview_mode': 'preview-off', 'exposure_time_us': 'auto', 'camera_gain': 'auto', 'video_framerate_fps': '30', 'camera_info': 'RPi cam0.'
   },
   'camera-b': {
-    'camera_mode': 'camera-off', 'exposure_time_us': 'auto', 'camera_gain': 'auto', 'video_framerate_fps': '30', 'camera_info': 'RPi cam1.'
+    'camera_mode': 'camera-off', 'preview_mode': 'preview-off', 'exposure_time_us': 'auto', 'camera_gain': 'auto', 'video_framerate_fps': '30', 'camera_info': 'RPi cam1.'
   },
   'camera-c': {
-    'camera_mode': 'camera-off', 'exposure_time_us': 'disabled', 'camera_gain': 'disabled', 'video_framerate_fps': 'disabled', 'camera_info': 'Config id: usb_0.'
+    'camera_mode': 'camera-off', 'preview_mode': 'preview-off', 'exposure_time_us': 'disabled', 'camera_gain': 'disabled', 'video_framerate_fps': 'disabled', 'camera_info': 'Config id: usb_0.'
   },
   'camera-d': {
-    'camera_mode': 'camera-off', 'exposure_time_us': 'disabled', 'camera_gain': 'disabled', 'video_framerate_fps': 'disabled', 'camera_info': 'Config id: usb_1.'
+    'camera_mode': 'camera-off', 'preview_mode': 'preview-off', 'exposure_time_us': 'disabled', 'camera_gain': 'disabled', 'video_framerate_fps': 'disabled', 'camera_info': 'Config id: usb_1.'
   },
 }
 
@@ -53,24 +53,15 @@ function selectCamera(cameraId, cameraName) {
 function cameraModeOnChange() {
   let selectedMode =
     byId('cameraModeId').options[byId('cameraModeId').selectedIndex].value;
-  if (selectedMode == 'camera-off') {
-    byId('buttonTriggerId').hidden = true;
-    setCameraMode(selectedCameraId, selectedMode);
-  }
-  else if (selectedMode == 'camera-on') {
-    byId('buttonTriggerId').hidden = true;
-    setCameraMode(selectedCameraId, selectedMode);
-  }
-  else if (selectedMode == 'record-on') {
-    byId('buttonTriggerId').hidden = true;
-    setCameraMode(selectedCameraId, selectedMode);
-  }
-  else if (selectedMode == 'record-on-trigger') {
+  let selectedPreviewMode =
+    byId('previewModeId').options[byId('previewModeId').selectedIndex].value;
+
+  byId('buttonTriggerId').hidden = true;
+  if (selectedMode == 'record-on-trigger') {
     byId('buttonTriggerId').hidden = false;
-    setCameraMode(selectedCameraId, selectedMode);
-  } else {
-    alert('Invalid value for cameraModeOnChange: ' + selectedMode + '.');
   }
+
+  setCameraMode(selectedCameraId, selectedMode, selectedPreviewMode);
 }
 
 function cameraStatusAllUpdate(cameraStatusAllJson = '') {
@@ -114,6 +105,7 @@ function cameraStatusAllUpdate(cameraStatusAllJson = '') {
       byId('cameraInfoId').textContent = info;
     }
   }
+  previewModeUpdate()
 }
 
 function recordTriggerClicked() {

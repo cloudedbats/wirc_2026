@@ -11,7 +11,6 @@ import pydantic
 from fastapi.responses import StreamingResponse
 import wirc_core
 
-
 logger = logging.getLogger(wirc_core.logger_name)
 
 camera_router = fastapi.APIRouter()
@@ -20,6 +19,7 @@ camera_router = fastapi.APIRouter()
 class CameraMode(pydantic.BaseModel):
     camera_id: str
     camera_mode: str
+    preview_mode: str
 
 
 @camera_router.post(
@@ -36,7 +36,9 @@ async def camera_mode(params: CameraMode):
             + " for "
             + params.camera_id
         )
-        await wirc_core.wirc_manager.camera_mode(params.camera_id, params.camera_mode)
+        await wirc_core.wirc_manager.camera_mode(
+            params.camera_id, params.camera_mode, params.preview_mode
+        )
         await asyncio.sleep(0)
     except Exception as e:
         message = "Exception: API - camera_mode" + str(e)
@@ -84,4 +86,19 @@ async def set_camera_gain(params: CameraGain):
         )
     except Exception as e:
         message = "API - set_camera_gain. Exception: " + str(e)
+        logger.debug(message)
+
+
+@camera_router.post(
+    "/camera/video-trigger/",
+    tags=["Cameras"],
+    description="Receive video trigger.",
+)
+async def recieve_video_trigger():
+    """ """
+    try:
+        logger.debug("API called: recieve_video_trigger.")
+        await wirc_core.wirc_manager.video_trigger()
+    except Exception as e:
+        message = "API - recieve_video_trigger. Exception: " + str(e)
         logger.debug(message)

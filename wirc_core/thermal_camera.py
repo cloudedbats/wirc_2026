@@ -80,7 +80,7 @@ class ThermalCamera:
 
         return camera_status
 
-    async def set_camera_mode(self, camera_mode):
+    async def set_camera_mode(self, camera_mode=None, preview_mode=None):
         """ """
         if camera_mode:
             self.camera_mode = camera_mode
@@ -114,8 +114,9 @@ class ThermalCamera:
         message = self.camera_name + ": " + str(self.camera_mode) + "."
         wirc_core.client_info.write_log("info", message)
 
-    async def camera_trigger(self):
+    async def video_trigger(self):
         """ """
+        print("Thermal video_trigger")
 
     async def initiate_camera(self):
         """ """
@@ -310,7 +311,7 @@ class VideoFileWriter(object):
         fps,
         directory_name,
         date_option,
-   ):
+    ):
         """ """
         self.camera_name = camera_name
         self.file_mp4_name = file_mp4_name

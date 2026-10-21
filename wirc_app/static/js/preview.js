@@ -12,10 +12,23 @@ function previewModeOnChange() {
     previewModeId.options[previewModeId.selectedIndex].value;
   selectedPreviewMode[selectedCameraId] = selectedMode;
 
+  cameraModeOnChange();
+
   refreshPreviewStream();
 }
 
 function previewModeUpdate() {
+  // Turn preview off if camera is off.
+  if (selectedCameraId in cameraStatusAll === true) {
+    let status = cameraStatusAll[selectedCameraId];
+    if ('preview_mode' in status === true) {
+      let preview_mode = status['preview_mode'];
+      if (preview_mode == 'preview-off') {
+        selectedPreviewMode[selectedCameraId] = 'preview-off';
+      }
+    }
+  }
+  // Change selected value.
   let selectedMode = selectedPreviewMode[selectedCameraId];
   byId('previewModeId').value = selectedMode;
 
