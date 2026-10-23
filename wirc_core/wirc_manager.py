@@ -71,7 +71,6 @@ class WircManager(object):
         await wirc_core.rpi_cam1.video_trigger()
         await wirc_core.usb_cam0.video_trigger()
         await wirc_core.usb_cam1.video_trigger()
-        wirc_core.client_status.trigger_status_event()
 
     async def set_saturation(self, camera_id, saturation):
         """ """

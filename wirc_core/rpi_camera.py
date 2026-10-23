@@ -40,6 +40,7 @@ class RaspberryPiCamera:
         self.preview_streamer.set_preview_queue(self.preview_queue)
         # Trigger.
         self.video_trigger_event = None
+        self.video_trigger_timestamp = 0
 
     def clear(self):
         """ """
@@ -158,6 +159,7 @@ class RaspberryPiCamera:
 
     async def video_trigger(self):
         """ """
+        self.video_trigger_timestamp = datetime.now()
         self.trigger_video_trigger_event()
 
     async def initiate_camera(self):
@@ -205,36 +207,39 @@ class RaspberryPiCamera:
             # Setup preview stream.
             self.preview_encoder = encoders.MJPEGEncoder()
             # Reduce preview frame speed.
+            frame_source = "lores"
+            quality = encoders.Quality.MEDIUM
             if preview_mode:
                 skip_count = 0
                 fps = int(self.video_framerate_fps)
                 if preview_mode == "preview-on":
-                    pass
-                elif preview_mode == "preview-10-fps":
                     if fps >= 10:
                         skip_count = int(fps * 0.1)
-                elif preview_mode == "preview-5-fps":
+                elif preview_mode == "fullsize-10fps":
+                    frame_source = "main"
+                    if fps >= 10:
+                        skip_count = int(fps * 0.1)
+                elif preview_mode == "preview-5fps":
+                    quality = encoders.Quality.LOW
                     if fps >= 5:
                         skip_count = int(fps * 0.2)
-                elif preview_mode == "preview-2-fps":
+                elif preview_mode == "preview-2fps":
+                    quality = encoders.Quality.LOW
                     if fps >= 2:
                         skip_count = int(fps * 0.5)
-                elif preview_mode == "preview-1-fps":
-                    if fps >= 1:
-                        skip_count = int(fps)
-                elif preview_mode == "preview-0.1-fps":
-                    skip_count = int(fps * 10.0)
-                #
-                print("DEBUG: Skip-count: ", skip_count)
+                elif preview_mode == "preview-1fps":
+                    quality = encoders.Quality.VERY_LOW
+                    skip_count = int(fps)
+               #
+                # print("DEBUG: Skip-count: ", skip_count)
                 if skip_count > 1:
                     self.preview_encoder.frame_skip_count = skip_count
 
             self.preview_encoder.output = outputs.FileOutput(self.preview_streamer)
             self.picam2.start_encoder(
-                self.preview_encoder, name="lores", quality=encoders.Quality.LOW
+                self.preview_encoder, name=frame_source, quality=quality
             )
             await asyncio.sleep(0)
-
         except Exception as e:
             self.logger.debug("Exception in start_preview: " + str(e))
 
@@ -530,17 +535,17 @@ class RaspberryPiCamera:
         """ """
         self.trigger_video_active = True
         out_path = ""
-        next_time_minute = None
-
-        pre_trigger_s = 2.0
-        post_trigger_s = 4.0
+        trigger_startup_time_s = 0.5
+        trigger_before_s = 2.0
+        trigger_after_s = 6.0
+        trigger_max_video_length_s = 60.0
 
         try:
             try:
                 # Decoder and output for trigger_video.
                 self.trigger_video_encoder = encoders.H264Encoder()
                 self.trigger_video_output = outputs.CircularOutput2(
-                    buffer_duration_ms=int(pre_trigger_s * 1000.0)
+                    buffer_duration_ms=int(trigger_before_s * 1000.0)
                 )
                 # Start the circular output.
                 self.picam2.start_encoder(
@@ -561,11 +566,20 @@ class RaspberryPiCamera:
                     # Used for next trigger events.
                     video_trigger_event = self.get_video_trigger_event()
 
-                    now = datetime.now() - timedelta(seconds=pre_trigger_s - 0.5)
-                    date_and_time = now.strftime("%Y%m%dT%H%M%S")
-                    file_mp4_name = (
-                        self.file_prefix + "_" + date_and_time + ".mp4"
+                    # Check if the last event already is covered by video.
+                    last_video_end_time = self.video_trigger_timestamp + timedelta(
+                        milliseconds=int(trigger_after_s * 1000.0)
                     )
+                    if last_video_end_time < datetime.now():
+                        continue  # Skip video.
+
+                    now = datetime.now() - timedelta(
+                        milliseconds=int(
+                            (trigger_startup_time_s + trigger_before_s) * 1000.0
+                        )
+                    )
+                    date_and_time = now.strftime("%Y%m%dT%H%M%S")
+                    file_mp4_name = self.file_prefix + "_" + date_and_time + ".mp4"
 
                     disc_path = wirc_core.wirc_files.get_target_disc_path()
                     dir_path = wirc_core.wirc_files.get_target_dir_path(
@@ -599,10 +613,27 @@ class RaspberryPiCamera:
                             outputs.PyavOutput(out_path)
                         )
 
-                        # Wait during recording.
-                        await asyncio.sleep(float(pre_trigger_s + post_trigger_s))
-
+                        # Wait during pre_trigger.
+                        start_rec_time = datetime.now()
+                        await asyncio.sleep(float(trigger_before_s))
+                        # Wait until trigger_after or max_video_length.
+                        recorded_time = (datetime.now() - start_rec_time).total_seconds()
+                        while recorded_time < trigger_max_video_length_s:
+                            time_now = datetime.now()
+                            # Using video_trigger_timestamp to catch more events.
+                            if time_now < (
+                                self.video_trigger_timestamp
+                                + timedelta(milliseconds=int(trigger_after_s * 1000.0))
+                            ):
+                                await asyncio.sleep(1.0)
+                                recorded_time = (datetime.now() - start_rec_time).total_seconds()
+                            else:
+                                break
+                        # Done.
                         self.trigger_video_output.close_output()
+
+                        message = self.camera_name + ": Triggered video ended after " + str(round(recorded_time, 1)) + " sec."
+                        wirc_core.client_info.write_log("info", message)
 
                         await asyncio.sleep(0)
                     except Exception as e:

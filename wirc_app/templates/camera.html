@@ -90,11 +90,12 @@
         <button onclick="hideSettingsMore()" class="delete is-pulled-right"></button>
         <div class="fixed-grid has-2-cols">
             <div class="grid mr-2">
-                <div class="cell">
-                </div>
-                <div class="cell">
-                    <p class="is-pulled-right is-size-7 mt-1">
-                    <h3> Note: Under development...</h3>
+                <!-- <div class="cell">
+                </div> -->
+                <div class="cell is-col-span-2">
+                    <!-- <p class="is-pulled-right is-size-7 mt-1"></p> -->
+                    <p> Note: Under development.
+                        Please edit "/home/wurb/wirc_settings/wirc_config.yaml" and restart to change settings.
                     </p>
                 </div>
                 <div class="cell">
@@ -151,11 +152,10 @@
                             <select id="previewModeId" onchange="previewModeOnChange()">
                                 <option value="preview-off">Preview OFF</option>
                                 <option value="preview-on">Preview ON</option>
-                                <option value="preview-10-fps">Slow - 10 fps</option>
-                                <option value="preview-5-fps">Slow - 5 fps</option>
-                                <option value="preview-2-fps">Slow - 2 fps</option>
-                                <option value="preview-1-fps">Slow - 1 fps</option>
-                                <option value="preview-0.1-fps">Slow - 0.1 fps</option>
+                                <option value="fullsize-10fps">Full size - 10 fps</option>
+                                <option value="preview-5fps">Medium quality - 5 fps</option>
+                                <option value="preview-2fps">Low quality - 2 fps</option>
+                                <option value="preview-1fps"> Very low quality - 1 fps</option>
                             </select>
                         </div>
                     </div>
