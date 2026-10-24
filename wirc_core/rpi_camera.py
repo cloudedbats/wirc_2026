@@ -316,6 +316,7 @@ class RaspberryPiCamera:
                 main={"size": (main_width, main_height)},
                 lores={"size": (lores_width, lores_height)},
                 transform=libcamera.Transform(hflip=self.hflip, vflip=self.vflip),
+                buffer_count=16,
             )
             await asyncio.sleep(0)
         except Exception as e:
