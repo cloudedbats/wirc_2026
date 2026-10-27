@@ -117,7 +117,10 @@ class RaspberryPiCamera:
             self.camera_mode = self.startup_mode
         if preview_mode == None:
             self.preview_mode = "preview-off"
-        #
+
+        message = self.camera_name + ": " + str(self.camera_mode) + "."
+        wirc_core.client_info.write_log("info", message)
+
         if self.camera_mode == "camera-off":
             self.preview_mode = "preview-off"
             if self.picam2 != None:
@@ -153,9 +156,6 @@ class RaspberryPiCamera:
         if self.camera_mode == "record-on-trigger":
             await self.start_trigger_video()
             await asyncio.sleep(0)
-
-        message = self.camera_name + ": " + str(self.camera_mode) + "."
-        wirc_core.client_info.write_log("info", message)
 
     async def video_trigger(self):
         """ """
@@ -215,7 +215,7 @@ class RaspberryPiCamera:
                 if preview_mode == "preview-on":
                     if fps >= 10:
                         skip_count = int(fps * 0.1)
-                elif preview_mode == "fullsize-10fps":
+                elif preview_mode == "s":
                     frame_source = "main"
                     if fps >= 10:
                         skip_count = int(fps * 0.1)
@@ -230,7 +230,7 @@ class RaspberryPiCamera:
                 elif preview_mode == "preview-1fps":
                     quality = encoders.Quality.VERY_LOW
                     skip_count = int(fps)
-               #
+                #
                 # print("DEBUG: Skip-count: ", skip_count)
                 if skip_count > 1:
                     self.preview_encoder.frame_skip_count = skip_count
@@ -496,9 +496,6 @@ class RaspberryPiCamera:
             finally:
                 self.picam2.stop_encoder(self.video_encoder)
                 await asyncio.sleep(0)
-                message = self.camera_name + ": Video: " + str(out_path)
-                wirc_core.client_info.write_log("info", message)
-                await asyncio.sleep(0)
 
         except Exception as e:
             self.logger.debug("Exception in _video_loop: " + str(e))
@@ -521,7 +518,7 @@ class RaspberryPiCamera:
             )
             await asyncio.sleep(0)
         except Exception as e:
-            self.logger.debug("Exception in start_video: " + str(e))
+            self.logger.debug("Exception in start_trigger_video: " + str(e))
 
     async def stop_trigger_video(self):
         """ """
@@ -530,7 +527,7 @@ class RaspberryPiCamera:
                 self.trigger_video_task.cancel()
             await asyncio.sleep(0)
         except Exception as e:
-            self.logger.debug("Exception in stop_video: " + str(e))
+            self.logger.debug("Exception in stop_trigger_video: " + str(e))
 
     async def _trigger_video_loop(self):
         """ """
@@ -618,7 +615,9 @@ class RaspberryPiCamera:
                         start_rec_time = datetime.now()
                         await asyncio.sleep(float(trigger_before_s))
                         # Wait until trigger_after or max_video_length.
-                        recorded_time = (datetime.now() - start_rec_time).total_seconds()
+                        recorded_time = (
+                            datetime.now() - start_rec_time
+                        ).total_seconds()
                         while recorded_time < trigger_max_video_length_s:
                             time_now = datetime.now()
                             # Using video_trigger_timestamp to catch more events.
@@ -627,13 +626,20 @@ class RaspberryPiCamera:
                                 + timedelta(milliseconds=int(trigger_after_s * 1000.0))
                             ):
                                 await asyncio.sleep(1.0)
-                                recorded_time = (datetime.now() - start_rec_time).total_seconds()
+                                recorded_time = (
+                                    datetime.now() - start_rec_time
+                                ).total_seconds()
                             else:
                                 break
                         # Done.
                         self.trigger_video_output.close_output()
 
-                        message = self.camera_name + ": Triggered video ended after " + str(round(recorded_time, 1)) + " sec."
+                        message = (
+                            self.camera_name
+                            + ": Triggered video ended after "
+                            + str(round(recorded_time, 1))
+                            + " sec."
+                        )
                         wirc_core.client_info.write_log("info", message)
 
                         await asyncio.sleep(0)
@@ -642,9 +648,6 @@ class RaspberryPiCamera:
 
             finally:
                 self.picam2.stop_encoder(self.trigger_video_encoder)
-                await asyncio.sleep(0)
-                message = self.camera_name + ": Trigger video: " + str(out_path)
-                wirc_core.client_info.write_log("info", message)
                 await asyncio.sleep(0)
 
         except Exception as e:

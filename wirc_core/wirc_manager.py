@@ -170,7 +170,7 @@ class WircManager(object):
     async def shutdown(self):
         """ """
         try:
-            pass
+            wirc_core.cameras.release_usb_cameras()
             # await wirc_core.rpi_cam0.set_camera_mode(camera_mode="camera-off")
             # await wirc_core.rpi_cam1.set_camera_mode(camera_mode="camera-off")
             # await wirc_core.usb_cam0.set_camera_mode(camera_mode="camera-off")

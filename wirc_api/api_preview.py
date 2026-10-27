@@ -12,7 +12,6 @@ import websockets.exceptions
 
 import wirc_core
 
-
 logger = logging.getLogger(wirc_core.logger_name)
 
 preview_router = fastapi.APIRouter()
@@ -24,6 +23,7 @@ async def preview_streamer_mjpeg(request, camera_id, fps):
     sleep_time_s = 0.2  # Use 5 fps as default.
     try:
         sleep_time_s = 1.0 / float(fps)
+        sleep_time_s -= 0.05  # Delta.
     except:
         pass
 

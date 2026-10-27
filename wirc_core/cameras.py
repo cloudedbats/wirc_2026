@@ -5,6 +5,7 @@
 # License: MIT License (see LICENSE or http://opensource.org/licenses/mit).
 
 import logging
+import pathlib
 import picamera2
 import cv2
 
@@ -48,21 +49,61 @@ class Cameras:
     def check_available_usb_cameras(self):
         """ """
         self.available_usb_camera_devices = []
-        for device_index in [0, 1, 2, 3, 4, 5, 6]:
-            try:
-                capture = cv2.VideoCapture(device_index)
+        try:
+            dev_v41_devices = []
+            dir_path = pathlib.Path("/dev/v4l/by-id")
+            if dir_path.exists():
+                for path_by_id in dir_path.iterdir():
+                    if path_by_id.is_symlink:
+                        print("symlink")
+                        print("path_by_id: ", path_by_id)
+                        dev_v41_devices.append(path_by_id)
+
+            for device_id in dev_v41_devices:
+                # for device_index in [0, 1, 2, 3, 4, 5, 6]:
+                # for device_index in ["/dev/video0", "/dev/video1"]:
                 try:
-                    rc, image_array = capture.read()
-                    if rc:
-                        print("USB device: - Success: ", device_index)
-                        self.available_usb_camera_devices.append(device_index)
-                    else:
-                        print("USB device: - Failed: ", device_index)
-                finally:
+                    symlink_value = str(device_id.resolve())
+                    capture = cv2.VideoCapture(
+                        symlink_value, apiPreference=cv2.CAP_V4L2
+                    )
+                    # capture = cv2.VideoCapture(device_id, apiPreference=cv2.CAP_V4L2)
+                    try:
+                        rc, image_array = capture.read()
+                        if rc:
+                            print("USB device: - Success: ", device_id.name)
+                            # print("USB device: - Success: ", device_id)
+                            self.available_usb_camera_devices.append(symlink_value)
+                            capture.release()
+                        else:
+                            print("USB device: - Failed: ", device_id.name)
+                            # print("USB device: - Failed: ", device_id)
+                    finally:
+                        pass
+                        # capture.release()
+                    if len(self.available_usb_camera_devices) >= 2:
+                        break
+                except Exception as e:
+                    self.logger.debug(
+                        "Exception in Cameras - check usb camera: " + str(e)
+                    )
+        except Exception as e:
+            self.logger.debug(
+                "Exception in Cameras - check_available_usb_cameras: " + str(e)
+            )
+
+    def release_usb_cameras(self):
+        """ """
+        for device_index in self.available_usb_camera_devices:
+            try:
+                capture = cv2.VideoCapture(device_index, apiPreference=cv2.CAP_V4L2)
+                try:
                     capture.release()
-                if len(self.available_usb_camera_devices) >= 2:
-                    break
+                except Exception as e:
+                    self.logger.debug(
+                        "Exception in Cameras - release_usb_camera: " + str(e)
+                    )
             except Exception as e:
                 self.logger.debug(
-                    "Exception in Cameras - check_available_usb_cameras: " + str(e)
+                    "Exception in Cameras - release_usb_cameras: " + str(e)
                 )

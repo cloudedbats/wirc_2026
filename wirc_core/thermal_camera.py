@@ -36,14 +36,21 @@ class ThermalCamera:
         self.configure()
         # For preview streaming.
         self.preview_queue = asyncio.Queue(maxsize=10)
+        # Trigger.
+        self.video_trigger_event = None
+        self.video_trigger_timestamp = 0
 
     def clear(self):
         """ """
         self.camera_mode = "camera-off"
+        self.preview_mode = "preview-off"
         self.camera_active = False
+        self.preview_active = False
         self.camera_video_active = False
         self.camera_task = ""
         self.camera_info = ""
+        self.trigger_video_active = False
+        # self.trigger_video_task = None
         self.camera_device_index = None
 
     def configure(self):
@@ -60,6 +67,8 @@ class ThermalCamera:
         # self.vflip = vflip
         # self.video_framerate_fps = video_framerate_fps
 
+        # Use upper half.
+
         self.directory_name = conf.get(cam + ".video.directory_name", "WircStation")
         self.date_option = conf.get(cam + ".video.date_option", "date-post-before")
         self.file_prefix = conf.get(cam + ".video.file_prefix", self.camera_name)
@@ -73,6 +82,7 @@ class ThermalCamera:
         camera_status = {}
         camera_status["camera_device_index"] = self.camera_device_index
         camera_status["camera_mode"] = self.camera_mode
+        camera_status["preview_mode"] = self.preview_mode
         camera_status["exposure_time_us"] = "disabled"
         camera_status["camera_gain"] = "disabled"
         camera_status["video_framerate_fps"] = "disabled"
@@ -82,72 +92,84 @@ class ThermalCamera:
 
     async def set_camera_mode(self, camera_mode=None, preview_mode=None):
         """ """
-        if camera_mode:
-            self.camera_mode = camera_mode
-        else:
+        old_camera_mode = self.camera_mode
+        old_preview_mode = self.preview_mode
+        if (old_camera_mode == camera_mode) and (old_preview_mode == preview_mode):
+            return
+
+        self.camera_mode = camera_mode
+        self.preview_mode = preview_mode
+        if camera_mode == None:
             self.camera_mode = self.startup_mode
-        #
-        if self.camera_mode == "camera-off":
-            if self.camera_video_active == True:
-                await self.stop_video()
-                await asyncio.sleep(0)
-            if self.camera_active == True:
-                await self.stop_camera()
-                await asyncio.sleep(0)
-        elif self.camera_mode == "camera-on":
-            if self.camera_video_active == True:
-                await self.stop_video()
-                await asyncio.sleep(0)
-            if self.camera_active == False:
-                await self.start_camera()
-                await asyncio.sleep(0)
-        elif self.camera_mode == "record-on":
-            if self.camera_active == False:
-                await self.start_camera()
-                await asyncio.sleep(0)
-            if self.camera_video_active == False:
-                await self.start_video()
-                await asyncio.sleep(0)
-        else:
-            self.camera_mode = "camera-failed"
-        #
+        if preview_mode == None:
+            self.preview_mode = "preview-off"
+
         message = self.camera_name + ": " + str(self.camera_mode) + "."
         wirc_core.client_info.write_log("info", message)
 
+        if self.camera_mode == "camera-off":
+            await self.stop_camera()
+            await asyncio.sleep(0)
+            return
+
+        if self.preview_mode == "preview-off":
+            await self.stop_preview()
+            await asyncio.sleep(0)
+        else:
+            await self.start_camera()
+            await asyncio.sleep(0)
+            await self.start_preview(preview_mode)
+            await asyncio.sleep(0)
+
+        if self.camera_mode == old_camera_mode:
+            return
+
+        if self.camera_mode in ["camera-on", "record-on", "record-on-trigger"]:
+            await self.stop_video()
+            await asyncio.sleep(0)
+            await self.stop_trigger_video()
+            await asyncio.sleep(0)
+
+        if self.camera_mode == "record-on":
+            await self.start_camera()
+            await asyncio.sleep(0)
+            await self.start_video()
+            await asyncio.sleep(0)
+
+        if self.camera_mode == "record-on-trigger":
+            await self.start_camera()
+            await asyncio.sleep(0)
+            await self.start_trigger_video()
+            await asyncio.sleep(0)
+
     async def video_trigger(self):
         """ """
-        print("Thermal video_trigger")
+        self.video_trigger_timestamp = datetime.now()
+        self.trigger_video_trigger_event()
 
     async def initiate_camera(self):
         """ """
         self.camera_initiated = True
 
-    async def start_camera(self):
-        """ """
-        try:
-            if self.camera_active == True:
-                print("DEBUG: Camera is already running.")
-                return
+    # async def config_camera_controls(self):
+    #     """ """
+    #     try:
+    #         await self.set_camera_controls(
+    #             self.exposure_time_us,
+    #             self.camera_gain,
+    #             self.saturation,
+    #             self.video_framerate_fps,
+    #         )
 
-            self.camera_active = True
-            self.camera_task = asyncio.create_task(
-                self._thermal_camera_loop(), name="Thermal camera loop"
-            )
-            await asyncio.sleep(0)
-        except Exception as e:
-            self.logger.debug("Exception in start_camera (thermal): " + str(e))
+    #     #     # print(
+    #     #     #     "DEBUG: self.picam2.controls.AeEnable: " + str(self.picam2.camera_controls["AeEnable"])
+    #     #     # )
+    #     #     self.picam2.set_controls({"AeEnable": False})
+    #     #     # self.picam2.controls.AeEnable = False
 
-    async def stop_camera(self):
-        """ """
-        try:
-            self.camera_active = False
-            await asyncio.sleep(0)
-            if self.camera_task:
-                self.camera_task.cancel()
-            await asyncio.sleep(0)
-            self.camera_task = None
-        except Exception as e:
-            self.logger.debug("Exception in stop_camera (thermal): " + str(e))
+    #         await asyncio.sleep(0)
+    #     except Exception as e:
+    #         self.logger.debug("Exception in config_camera_controls: " + str(e))
 
     async def set_camera_controls(
         self,
@@ -161,22 +183,146 @@ class ThermalCamera:
         # Rotation ?
         #
 
+    async def start_camera(self):
+        """ """
+        try:
+            if self.camera_active == True:
+                return
+
+            self.camera_active = True
+            self.camera_task = asyncio.create_task(
+                self._thermal_camera_loop(), name="Thermal camera loop"
+            )
+            await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.debug("Exception in start_camera (thermal): " + str(e))
+
+    async def stop_camera(self):
+        """ """
+        self.preview_mode = "preview-off"
+        self.camera_initiated = False
+        try:
+            self.camera_active = False
+            await asyncio.sleep(0)
+            if self.camera_task:
+                self.camera_task.cancel()
+            await asyncio.sleep(0)
+            self.camera_task = None
+        except Exception as e:
+            self.logger.debug("Exception in stop_camera (thermal): " + str(e))
+
+    async def start_preview(self, preview_mode=None):
+        """ """
+        try:
+            self.preview_active = True
+            #
+            self.preview_quality = "MEDIUM"
+            self.preview_quality_persent = 75
+            self.preview_fps = 10
+            if preview_mode:
+                if preview_mode == "preview-on":
+                    self.preview_quality = "MEDIUM"
+                    self.preview_quality_persent = 75
+                    self.preview_fps = 10
+                elif preview_mode == "fullsize-10fps":
+                    self.preview_quality = "MEDIUM"
+                    self.preview_quality_persent = 75
+                    self.preview_fps = 10
+                elif preview_mode == "preview-5fps":
+                    self.preview_quality = "LOW"
+                    self.preview_quality_persent = 40
+                    self.preview_fps = 5
+                elif preview_mode == "preview-2fps":
+                    self.preview_quality = "LOW"
+                    self.preview_quality_persent = 40
+                    self.preview_fps = 2
+                elif preview_mode == "preview-1fps":
+                    self.preview_quality = "VERY_LOW"
+                    self.preview_quality_persent = 10
+                    self.preview_fps = 1
+            await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.debug("Exception in start_preview: " + str(e))
+
+    async def stop_preview(self):
+        """ """
+        try:
+            self.preview_active = False
+            await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.debug("Exception in stop_preview: " + str(e))
+
+    async def start_video(self):
+        """ """
+        try:
+            self.camera_video_active = True
+            await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.debug("Exception in start_video: " + str(e))
+
+    async def stop_video(self):
+        """ """
+        try:
+            self.camera_video_active = False
+            await asyncio.sleep(0)
+        except Exception as e:
+            self.logger.debug("Exception in stop_video: " + str(e))
+
+    async def start_trigger_video(self):
+        """ """
+        # try:
+        #     if self.trigger_video_active == True:
+        #         print("DEBUG: Video (trigger) is already running.")
+        #         return
+
+        #     self.trigger_video_active = True
+        #     self.trigger_video_task = asyncio.create_task(
+        #         self._trigger_video_loop(), name="Camera trigger video loop"
+        #     )
+        #     await asyncio.sleep(0)
+        # except Exception as e:
+        #     self.logger.debug("Exception in start_trigger_video: " + str(e))
+
+    async def stop_trigger_video(self):
+        """ """
+        # try:
+        #     if self.trigger_video_active == True:
+        #         self.trigger_video_task.cancel()
+        #     await asyncio.sleep(0)
+        # except Exception as e:
+        #     self.logger.debug("Exception in stop_trigger_video: " + str(e))
+
     async def _thermal_camera_loop(self):
         """ """
         try:
             self.camera_active = True
 
-            capture = cv2.VideoCapture(self.camera_device_index)
+            # capture = cv2.VideoCapture(self.camera_device_index)
+            capture = cv2.VideoCapture(
+                self.camera_device_index, apiPreference=cv2.CAP_V4L2
+            )
 
             if not capture.isOpened():
-                print("Error: Could not access the webcam.")
-                self.camera_active = False
+                message = "Error: Could not access the webcam."
+                wirc_core.client_info.write_log("info", message)
+                await asyncio.sleep(0.0)
+                self.set_camera_mode(camera_mode="camera-off")
+                wirc_core.client_status.trigger_status_event()
+                await asyncio.sleep(0.0)
                 return
 
+            capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
             frame_width = int(capture.get(cv2.CAP_PROP_FRAME_WIDTH))
             frame_height = int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+            frame_rate_fps = int(capture.get(cv2.CAP_PROP_FPS))
+            print("frame_rate_fps 1:", frame_rate_fps)
+            capture.set(cv2.CAP_PROP_FPS, 30)
+            frame_rate_fps = int(capture.get(cv2.CAP_PROP_FPS))
+            print("frame_rate_fps 2:", frame_rate_fps)
 
-            counter = 0
+            # Used by preview.
+            preview_time_counter = 0.0
+
             video_writer = None
 
             now = datetime.now()
@@ -189,12 +335,9 @@ class ThermalCamera:
             )
 
             while self.camera_active:
-                counter += 1
                 if self.camera_video_active:
-                    # Use one minute for tests.
-                    # if counter > (25 * 60):
+                    # Use one minute.
                     if datetime.now() >= next_time_minute:
-                        counter = 0
                         # Save to file.
                         if video_writer != None:
                             video_writer.write_to_file()
@@ -229,7 +372,7 @@ class ThermalCamera:
                             file_mp4_name=file_mp4_name,
                             frame_height=frame_height,
                             frame_width=frame_width,
-                            fps=25,
+                            fps=frame_rate_fps,
                             directory_name=self.directory_name,
                             date_option=self.date_option,
                         )
@@ -251,20 +394,28 @@ class ThermalCamera:
                     self.logger.debug("Exception VIDEO: " + str(e))
 
                 # For preview streaming.
-                # image_array = cv2.normalize(image_array, None, 0, 255, cv2.NORM_MINMAX)
-                # image_array = cv2.applyColorMap(image_array, cv2.COLORMAP_INFERNO)
-                jpg = PIL.Image.fromarray(image_array)
-                tmpFile = io.BytesIO()
-                jpg.save(tmpFile, "JPEG")
-                bytearray = tmpFile.getvalue()[:]  # Copy. Needed?
-                try:
-                    while self.preview_queue.qsize() > 2:
-                        self.preview_queue.get_nowait()
-                        self.preview_queue.task_done()
-                    if not self.preview_queue.full():
-                        self.preview_queue.put_nowait(bytearray)
-                except Exception as e:
-                    self.logger.debug("Exception in _thermal_camera_loop: " + str(e))
+                preview_time_counter += 1 / frame_rate_fps
+                if preview_time_counter >= 1 / self.preview_fps:
+                    preview_time_counter = 0
+                    #
+                    image_rgb = cv2.cvtColor(image_array, cv2.COLOR_BGR2RGB)
+                    jpg = PIL.Image.fromarray(image_rgb)
+                    tmpFile = io.BytesIO()
+                    jpg.save(tmpFile, "JPEG", quality=self.preview_quality_persent)
+                    bytearray = tmpFile.getvalue()[:]  # Copy. Needed?
+                    try:
+                        while self.preview_queue.qsize() > 2:
+                            self.preview_queue.get_nowait()
+                            self.preview_queue.task_done()
+                        if not self.preview_queue.full():
+                            self.preview_queue.put_nowait(bytearray)
+                    except Exception as e:
+                        self.logger.debug(
+                            "Exception in _thermal_camera_loop: " + str(e)
+                        )
+                    print("Preview PROCESSED.")
+                else:
+                    print("Preview SKIPPED.")
 
                 await asyncio.sleep(0)
 
@@ -282,21 +433,18 @@ class ThermalCamera:
             capture.release()
             self.logger.debug("Thermal_camera_loop ended.")
 
-    async def start_video(self):
+    def trigger_video_trigger_event(self):
         """ """
-        try:
-            self.camera_video_active = True
-            await asyncio.sleep(0)
-        except Exception as e:
-            self.logger.debug("Exception in start_video: " + str(e))
+        # Event: Create a new and release the old.
+        old_event = self.get_video_trigger_event()
+        self.video_trigger_event = asyncio.Event()
+        old_event.set()
 
-    async def stop_video(self):
+    def get_video_trigger_event(self):
         """ """
-        try:
-            self.camera_video_active = False
-            await asyncio.sleep(0)
-        except Exception as e:
-            self.logger.debug("Exception in stop_video: " + str(e))
+        if self.video_trigger_event == None:
+            self.video_trigger_event = asyncio.Event()
+        return self.video_trigger_event
 
 
 class VideoFileWriter(object):
